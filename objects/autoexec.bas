@@ -1,0 +1,1 @@
+10 load"loader.bas",r

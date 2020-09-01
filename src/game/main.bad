@@ -1,0 +1,349 @@
+## ------------------------------------'
+##               MAIN                  '
+## ------------------------------------'
+
+
+
+OPEN"grp:"AS#1: defint a-z
+## 41=Inhibits the screen display, 44=Displays the screen
+## http://map.grauw.nl/resources/msxbios.php
+DEFUSR1=&H41:DEFUSR2=&H44
+
+
+
+## INICIALIZAMOS MANAGERS
+##      Inicializamos las entidades
+gosub {init_entities}
+##      Inicializamos el mapa'
+gosub {inicializar_mapa}
+##      Incializamos sistema de render
+gosub {init_render}
+##      Inicializamos sistema de input
+gosub {init_input_system}
+##      Inicializamos sistema de físicas 
+
+##      Inicializamos sistema de colisiones
+
+
+
+
+
+## ACTUALIZANDO SISTEMAS
+{main_loop}
+## actualizando el render'
+gosub {update_render}
+## actualizando el input
+gosub {update_input_system2}
+## actualizando las fisicas
+## actualizando las colisiones
+goto {main_loop}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## ------------------------------------'
+##               Render system         '
+## ------------------------------------'
+{init_render}
+    ## screen 5,2
+    gosub {render_map}
+    gosub {render_entities}
+return
+{update_render}
+    ## Si ha cambiado el mapa lo pintamos
+    if mc then gosub {render_map}
+    gosub {render_entities}
+return
+
+## 
+## Dibujar entidad personaje
+## Esta funcion actualizará el personaje en pantalla
+## 
+{render_entities}
+    put sprite ps,(px,py),,pp
+return
+
+
+## 
+## Dibujar mapa
+## Esta funcion dibujará los tiles con el array
+## 
+{render_map}
+    cls
+    if ms=0 then gosub {pintar_level_0}  
+    if ms=1 then gosub {pintar_level_1}
+    if ms=2 then gosub {pintar_level_2}
+    preset(0,0):print #1, "level "ms
+    mc=0
+return
+
+
+
+
+
+
+## ------------------------------------'
+##               Input system         '
+## ------------------------------------'
+
+
+
+{init_input_system}
+    ## con 0 habilitamos las interrupciones para capturar las pulsaciones del espacio y cirsores
+    strig(0) on
+    on strig gosub {rutina_disparo}
+return
+## 
+## 'Subrutina captura movimiento joystick / cursores y boton de disparo'
+## 
+## ' stick(0) devuelve el cursor pulsado: 1 Arriba, 2 arriba derecha, 3 derecha, 4 abajo derecha, 5 abajo, 6 abajo izquierda, 7 izquierda, 8 izquierda arriba
+{update_input_system}
+    on stick(0) gosub {Mover_arriba},{@},{Mover_derecha},{@},{Mover_abajo},{@},{Mover_izquierda}
+return
+{update_input_system2}
+    ## '1 Arriba, 2 arriba derecha, 3 derecha, 4 abajo derecha, 5 abajo, 6 abajo izquierda, 7 izquierda, 8 izquierda arriba
+     j=stick(0)
+     if j=3 then  gosub {Mover_derecha}
+     if j=7 then  gosub {Mover_izquierda}
+     if j=1 then  gosub {Mover_arriba}
+     if j=5 then  gosub {Mover_abajo} 
+return
+
+##  'pd=dirección arriba ^ 1, derecha > 3, abajo v 5, izquierda < 7
+{Mover_derecha}
+    px=px+pv
+    ## ' Le ponemos como plano el 0'
+    pp=1
+    gosub {colision_system_screen}
+return
+{Mover_izquierda}
+    px=px-pv
+    pp=3
+    ## if px<0 then px=0
+    ## preset(0,0): print #1, "pulsates izquierda"
+    gosub {colision_system_screen}
+return
+{Mover_arriba}
+    py=py-pv
+    ## con pu le decimos que está saltando, al tocas la tierra volveremos a poner pu=0'
+    ## if pu<>1 then py=py-35
+    pp=7
+    ## pc=pc+1
+    ## com esto evitamos que el player salga de la pantalla'
+    ## if py<=30 then py=30
+    ## if py>200 then py=200
+    ## preset(0,0): print #1, "pulsates arriba"
+    gosub {colision_system_screen}
+return
+{Mover_abajo}
+    py=py+pv
+    pp=5
+    ## nada
+    ## preset(0,0): print #1, "pulsates abajo"
+    gosub {colision_system_screen}
+return
+
+
+
+
+
+
+## ------------------------------------'
+##               Colision system       '
+## ------------------------------------'
+
+
+{colision_system_screen}
+    ## Si la posición en x del player es mayor que el ancho de la pantalla la dejamos en esa posición para que no salga de la pantalla'
+    if px>=255-pw or px<0 or py<0 or py> 212-ph then gosub {init_entities}:ms=ms+1:mc=1: put sprite ps,(0,-32),,pp
+    if ms>=mm-1 then ms=0
+return
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## ------------------------------------------------------------------------------------------'
+##                          MANAGERS
+## ------------------------------------------------------------------------------------------'
+
+## ------------------------------------'
+##               Entidad-player       '
+## ------------------------------------'
+{init_entities}
+    px=100: py=212-16-16-16: pw=16: ph=16: pd=3: pu=0: pv=10: pe=100: pc=0: pp=1: ps=1
+return
+
+## ------------------------------------'
+##               Entidad-disparo       '
+## ------------------------------------'
+{rutina_disparo}
+    ##nada
+return
+
+
+
+## ------------------------------'
+##             Mapas             '
+## ------------------------------'
+
+
+## neceswitamos decirle a nuestro juego don de hay una pared: una casa: etc'
+## Como son 256x212px y heos dibujado cuadros de 16 por 16px necesitamos un mapa
+##' de 13 filas y 16 columnas recordemos que la posición 1 tambien s cuenta en un array'
+## inicializamos el mapa'
+
+{inicializar_mapa}
+    ## ms=mapa seleccioando, lo hiremos cambiando
+    ## mm= maximo de mapas, como hemos creado 2 levels ponemos mm=mapa maximo 2
+    ##mc= mapa cambia, lo utilizaremos para cambiar los copys y así cambiar la pantalla
+    ms=0:mm=4:mc=0:tn=-1
+    ## 13 serán la fila y 16 laas columnas menos uno, porque así son los arrays'
+   
+return
+
+
+
+
+
+
+
+
+
+
+
+## Los mapas estámn hechos con el programa tiled, incluido en el proyecto'
+## En el mapa de tiles el:
+##     0 es un arbol' 
+## LEVELS'
+
+
+## level 1
+{pintar_level_0}
+    ## El centro tiene 2 arboles
+    tx=6*16:ty=0*16:tw=3*16:th=2*16
+    for c=0 to 256 step 100
+        copy (tx,ty)-(tx+tw,ty+th),1 to (c,90)
+    next c  
+    ## Tiene en el suelo 13 bloques
+    tx=0:ty=0:tw=1*16:th=1*16
+    for c=0 to 212+tw+1 step tw
+        copy (tx,ty)-(tw,th),1 to (c,180)
+    next c  
+return
+
+## level 1
+{pintar_level_1}
+    ## El centro tiene 4 arboles
+    tx=6*16:ty=0*16:tw=3*16:th=2*16
+    for c=0 to 256 step 40
+        copy (tx,ty)-(tx+tw,ty+th),1 to (c,90)
+    next c  
+    ## Tiene el suelo dividido en 3 partes
+    tx=0:ty=0:tw=1*16:th=1*16
+    for c=0 to 50 step tw
+        copy (tx,ty)-(tx+tw,ty+th),1 to (c,180)
+    next c  
+    for c=100 to 150 step tw
+        copy (tx,ty)-(tx+tw,ty+th),1 to (c,180)
+    next c  
+    for c=192 to 212+tw step tw
+        copy (tx,ty)-(tx+tw,ty+th),1 to (c,180)
+    next c  
+return
+
+## level 1
+{pintar_level_2}
+    ## El centro tiene 3 casas
+    tx=12*16:ty=11*16:tw=4*16:th=3*16
+    for c=0 to 256 step 100
+        copy (tx,ty)-(tx+tw,ty+th),1 to (c,90)
+    next c  
+    ## Tiene el suelo lleno de tierra
+    tx=4*16:ty=1*16:tw=1*16:th=1*16
+    for c=0 to 212+tw+1 step tw
+        copy (tx,ty)-(tx+tw,ty+th),1 to (c,180)
+    next c   
+return
